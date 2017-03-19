@@ -1,5 +1,9 @@
 #!/bin/sh
 
+find_python() {
+    return which python > /dev/null 2>&1
+}
+
 get_python_version() {
     VERSION=$(python -V 2>&1 | grep -Po '(?<=Python )(.+)')
     VERSION=${VERSION%%.*}
@@ -10,34 +14,44 @@ print_python_link() {
     echo `ls --color -lap $(which python)` 
 }
 
+remove_python_link() {
+    if [ $VERSION -gt 0 ]; then
+        echo "* Removing link to python$VERSION"
+        sudo unlink /usr/bin/python
+    else
+        echo "! Python is not installed"
+    fi
+}
+
+# if found version 2 install version 3
+link_v3() {
+    if [ $VERSION -eq 2 ]; then
+        echo "* Adding link to python3"
+        sudo ln -s /usr/bin/python3 /usr/bin/python
+    fi
+}
+
+# if version is 3 or not installed - install version 2
+link_v2() {
+    if [[ $VERSION -eq 3 || $VERSION -eq 0 ]]; then
+        echo "* Adding link to python2"
+        sudo ln -s /usr/bin/python2 /usr/bin/python
+    fi
+}
+
+
 printf "Python System Switcher aka PSS [https://www.github.com/slouffka]\n\n"
 
 get_python_version
 
 echo "* Found python version: $VERSION"
 
-# remove python link 
-if [ $VERSION -gt 0 ]; then
-    echo "* Removing link to python$VERSION"
-    sudo unlink /usr/bin/python
-else
-    echo "! Python is not installed"
-fi
+remove_python_link
 
-# if found version 2 install version 3
-if [ $VERSION -eq 2 ]; then
-    echo "* Adding link to python3"
-    sudo ln -s /usr/bin/python3 /usr/bin/python
-fi
+link_v2
+link_v3
 
-# if version is 3 or not installed - install version 2
-if [[ $VERSION -eq 3 || $VERSION -eq 0 ]]; then
-    echo "* Adding link to python2"
-    sudo ln -s /usr/bin/python2 /usr/bin/python
-fi
-
-# just echo the new version info
-if which python > /dev/null 2>&1; then
+if find_python; then
     get_python_version
 
     echo "* Python switched to version: $VERSION"
